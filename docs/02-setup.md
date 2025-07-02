@@ -14,7 +14,6 @@ Note: LAN looked like this: the router and jetson were connected via an Ethernet
 - Connect a monitor, keyboard, and mouse directly to the Jetson Nano.
 - Open a terminal on the Jetson Nano and run:
 
-```bash
 sudo systemctl enable ssh   # Ensures SSH starts on boot
 sudo systemctl start ssh    # Starts SSH service immediately
 sudo systemctl status ssh   # Verify that SSH is active (look for "active (running)")
