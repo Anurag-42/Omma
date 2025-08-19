@@ -1,6 +1,6 @@
 # Omma Project Documentation
 
-Welcome to the Computer Vision part of Omma
+This repo gives a comprehesive overview of how the bug detection hardware setup and algorithmic design was done for omma
 
 ## Documentation
 
