@@ -1,2 +1,4 @@
 *.json filter=lfs diff=lfs merge=lfs -text
 *.png filter=lfs diff=lfs merge=lfs -text
+unannotated_img/** filter=lfs diff=lfs merge=lfs -text
+labelme_annotation/** filter=lfs diff=lfs merge=lfs -text
