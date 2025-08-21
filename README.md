@@ -11,7 +11,6 @@ All Setup and process documentation is in "docs" folder:
 3. [03 - Camera Setup and Detection] (docs/03-setup.md)
 4. [04 - libcamera dependencies installation via docker + scp] (docs/04-setup.md)
 5. [05- image collection and sending it to my laptop] (docs/05-setup.md
-6. svg_images.tar.gz -> contains the jpg and  corresponding labelme json files 
-(*More docs coming soon*)
+6. customized_rcnn.ipynb -> our trained model
 
 ---
