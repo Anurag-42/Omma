@@ -2,68 +2,13 @@
 import torch
 import torchvision.transforms as transforms
 from PIL import Image, ImageDraw, ImageFont
+import json
+import numpy as np
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 import os
 import time
 from pathlib import Path
-
-MODEL_PATH = "best_model.pth"
-IMAGE_FOLDER = "/home/pi/captured_images"
-OUTPUT_FOLDER = "/home/pi/detections_output"
-CONF_THRESHOLD = 0.5
-POLL_INTERVAL = 5
-
-os.makedirs(OUTPUT_FOLDER, exist_ok=True)
-os.makedirs(os.path.join(OUTPUT_FOLDER, "high_confidence"), exist_ok=True)
-os.makedirs(os.path.join(OUTPUT_FOLDER, "all_detections"), exist_ok=True)
-
-print("🔄 Initializing bug detection model...")
-evaluator = BugDetectionEvaluator(MODEL_PATH)
-
-processed_images = set()
-
-print("Deployment started. Monitoring for new images...")
-
-while True:
-    try:
-        image_extensions = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp"}
-        image_files = [f for f in Path(IMAGE_FOLDER).glob("*") if f.suffix.lower() in image_extensions]
-
-        for image_path in image_files:
-            if str(image_path) in processed_images:
-                continue
-
-            print(f"\n  Processing new image: {image_path.name}")
-            result, original_image = evaluator.detect_bugs_in_image(str(image_path), conf_threshold=CONF_THRESHOLD)
-            if result is None:
-                print(" Detection failed for this image.")
-                processed_images.add(str(image_path))
-                continue
-
-            if result['detections']['count'] > 0:
-                vis_image = evaluator.visualize_detections(original_image.copy(), result, show_all_detections=False, conf_threshold=CONF_THRESHOLD)
-                vis_path = os.path.join(OUTPUT_FOLDER, "high_confidence", f"detected_{image_path.name}")
-                vis_image.save(vis_path)
-
-                vis_all = evaluator.visualize_detections(original_image.copy(), result, show_all_detections=True, conf_threshold=0.1)
-                vis_all_path = os.path.join(OUTPUT_FOLDER, "all_detections", f"all_{image_path.name}")
-                vis_all.save(vis_all_path)
-            else:
-                vis_path = os.path.join(OUTPUT_FOLDER, "high_confidence", f"no_bugs_{image_path.name}")
-                original_image.save(vis_path)
-
-            processed_images.add(str(image_path))
-            print(f" Saved visualizations for {image_path.name}")
-
-        time.sleep(POLL_INTERVAL)
-
-    except KeyboardInterrupt:
-        print("\n Deployment stopped by user.")
-        break
-    except Exception as e:
-        print(f" Error in deployment loop: {e}")
-        time.sleep(POLL_INTERVAL)
 
 
 class BugDetectionEvaluator:
@@ -124,8 +69,8 @@ class BugDetectionEvaluator:
                     
                     print(f"🎯 Detected {num_classes} classes")
                     
-                    # Create model
-                    self.model = fasterrcnn_resnet50_fpn(pretrained=False, num_classes=num_classes)
+                    # Create model - avoid downloading pretrained weights
+                    self.model = fasterrcnn_resnet50_fpn(weights=None, num_classes=num_classes)
                     
                     # Load state dict
                     missing_keys, unexpected_keys = self.model.load_state_dict(clean_state, strict=False)
@@ -207,11 +152,11 @@ class BugDetectionEvaluator:
         
         # Load font
         try:
-            font_size = max(12, min(image.size) // 50)  # Scale font with image size
+            font_size = 12  # Fixed small font size
             font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
         except:
             try:
-                font = ImageFont.truetype("/System/Library/Fonts/Arial.ttf", 16)
+                font = ImageFont.truetype("/System/Library/Fonts/Arial.ttf", 12)
             except:
                 font = ImageFont.load_default()
         
@@ -255,8 +200,8 @@ class BugDetectionEvaluator:
                 color = colors['low_conf']
                 conf_level = "LOW"
             
-            # Draw bounding box
-            line_width = max(2, min(image.size) // 200)
+            # Draw bounding box with thinner lines
+            line_width = 1  # Fixed thin line width
             draw.rectangle([x1, y1, x2, y2], outline=color, width=line_width)
             
             # Create label text
@@ -472,3 +417,63 @@ class BugDetectionEvaluator:
             f.write('\n'.join(report_lines))
         
         print(f"📋 Detailed report saved to: {report_path}")
+
+
+# Main deployment code
+if __name__ == "__main__":
+    MODEL_PATH = "enhanced_faster_rcnn_bug_detection_best.pth"
+    IMAGE_FOLDER = "/home/pi/captured_images"
+    OUTPUT_FOLDER = "/home/pi/detections_output"
+    CONF_THRESHOLD = 0.5
+    POLL_INTERVAL = 5
+
+    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+    os.makedirs(os.path.join(OUTPUT_FOLDER, "high_confidence"), exist_ok=True)
+    os.makedirs(os.path.join(OUTPUT_FOLDER, "all_detections"), exist_ok=True)
+
+    print("🔄 Initializing bug detection model...")
+    evaluator = BugDetectionEvaluator(MODEL_PATH)
+
+    processed_images = set()
+
+    print("Deployment started. Monitoring for new images...")
+
+    while True:
+        try:
+            image_extensions = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp"}
+            image_files = [f for f in Path(IMAGE_FOLDER).glob("*") if f.suffix.lower() in image_extensions]
+
+            for image_path in image_files:
+                if str(image_path) in processed_images:
+                    continue
+
+                print(f"\n  Processing new image: {image_path.name}")
+                result, original_image = evaluator.detect_bugs_in_image(str(image_path), conf_threshold=CONF_THRESHOLD)
+                if result is None:
+                    print(" Detection failed for this image.")
+                    processed_images.add(str(image_path))
+                    continue
+
+                if result['detections']['count'] > 0:
+                    vis_image = evaluator.visualize_detections(original_image.copy(), result, show_all_detections=False, conf_threshold=CONF_THRESHOLD)
+                    vis_path = os.path.join(OUTPUT_FOLDER, "high_confidence", f"detected_{image_path.name}")
+                    vis_image.save(vis_path)
+
+                    vis_all = evaluator.visualize_detections(original_image.copy(), result, show_all_detections=True, conf_threshold=0.1)
+                    vis_all_path = os.path.join(OUTPUT_FOLDER, "all_detections", f"all_{image_path.name}")
+                    vis_all.save(vis_all_path)
+                else:
+                    vis_path = os.path.join(OUTPUT_FOLDER, "high_confidence", f"no_bugs_{image_path.name}")
+                    original_image.save(vis_path)
+
+                processed_images.add(str(image_path))
+                print(f" Saved visualizations for {image_path.name}")
+
+            time.sleep(POLL_INTERVAL)
+
+        except KeyboardInterrupt:
+            print("\n Deployment stopped by user.")
+            break
+        except Exception as e:
+            print(f" Error in deployment loop: {e}")
+            time.sleep(POLL_INTERVAL)
