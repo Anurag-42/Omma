@@ -18,7 +18,7 @@ os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 os.makedirs(os.path.join(OUTPUT_FOLDER, "high_confidence"), exist_ok=True)
 os.makedirs(os.path.join(OUTPUT_FOLDER, "all_detections"), exist_ok=True)
 
-print("🔄 Initializing bug detection model...")
+print(" Initializing bug detection model...")
 evaluator = BugDetectionEvaluator(MODEL_PATH)
 
 processed_images = set()
@@ -81,26 +81,26 @@ class BugDetectionEvaluator:
         
     def _load_model(self):
         """Load the trained model"""
-        print(f"🔄 Loading model from: {self.model_path}")
+        print(f" Loading model from: {self.model_path}")
         
         try:
             # Load checkpoint
             checkpoint = torch.load(self.model_path, map_location=self.device)
-            print(f"✅ Checkpoint loaded successfully")
+            print(f" Checkpoint loaded successfully")
             
             # Handle different checkpoint formats
             if isinstance(checkpoint, dict):
                 if 'model' in checkpoint and hasattr(checkpoint['model'], 'eval'):
                     # Complete model object
                     self.model = checkpoint['model']
-                    print("✅ Loaded complete model object")
+                    print(" Loaded complete model object")
                 else:
                     # State dict - try to create compatible model
                     if 'model_state_dict' in checkpoint:
                         model_state = checkpoint['model_state_dict']
-                        print(f"📊 Epoch: {checkpoint.get('epoch', 'Unknown')}")
+                        print(f" Epoch: {checkpoint.get('epoch', 'Unknown')}")
                         if 'config' in checkpoint:
-                            print(f"📋 Config: {checkpoint['config']}")
+                            print(f"Config: {checkpoint['config']}")
                     else:
                         model_state = checkpoint
                     
@@ -122,7 +122,7 @@ class BugDetectionEvaluator:
                             num_classes = clean_state[key].shape[0]
                             break
                     
-                    print(f"🎯 Detected {num_classes} classes")
+                    print(f"Detected {num_classes} classes")
                     
                     # Create model
                     self.model = fasterrcnn_resnet50_fpn(pretrained=False, num_classes=num_classes)
@@ -130,11 +130,11 @@ class BugDetectionEvaluator:
                     # Load state dict
                     missing_keys, unexpected_keys = self.model.load_state_dict(clean_state, strict=False)
                     if missing_keys:
-                        print(f"⚠️  Missing keys: {len(missing_keys)}")
+                        print(f"  Missing keys: {len(missing_keys)}")
                     if unexpected_keys:
-                        print(f"⚠️  Unexpected keys: {len(unexpected_keys)}")
+                        print(f"  Unexpected keys: {len(unexpected_keys)}")
                     
-                    print("✅ Model architecture created and weights loaded")
+                    print("Model architecture created and weights loaded")
             
             self.model.to(self.device)
             self.model.eval()
@@ -143,10 +143,10 @@ class BugDetectionEvaluator:
             test_input = torch.randn(3, 224, 224).to(self.device)
             with torch.no_grad():
                 test_output = self.model([test_input])
-            print("✅ Model test successful - ready for inference!")
+            print("Model test successful - ready for inference!")
             
         except Exception as e:
-            print(f"❌ Error loading model: {str(e)}")
+            print(f" Error loading model: {str(e)}")
             raise
             
     def _setup_transform(self):
@@ -198,7 +198,7 @@ class BugDetectionEvaluator:
             }, image
             
         except Exception as e:
-            print(f"❌ Error processing {image_path}: {str(e)}")
+            print(f" Error processing {image_path}: {str(e)}")
             return None, None
     
     def visualize_detections(self, image, detection_result, show_all_detections=False, conf_threshold=0.5):
@@ -300,9 +300,9 @@ class BugDetectionEvaluator:
     
     def evaluate_on_test_set(self, test_dir, output_dir, conf_threshold=0.5, max_images=None):
         """Evaluate model on entire test set"""
-        print(f"🔍 Evaluating bug detection on test images")
-        print(f"📁 Test directory: {test_dir}")
-        print(f"📊 Confidence threshold: {conf_threshold}")
+        print(f" Evaluating bug detection on test images")
+        print(f" Test directory: {test_dir}")
+        print(f" Confidence threshold: {conf_threshold}")
         print("=" * 60)
         
         # Create output directory
@@ -322,10 +322,10 @@ class BugDetectionEvaluator:
         if max_images:
             image_files = image_files[:max_images]
             
-        print(f"📸 Found {len(image_files)} test images")
+        print(f"Found {len(image_files)} test images")
         
         if len(image_files) == 0:
-            print("❌ No images found! Check the test directory path.")
+            print(" No images found! Check the test directory path.")
             return
         
         # Process each image
@@ -335,7 +335,7 @@ class BugDetectionEvaluator:
         confidence_distribution = []
         
         for i, image_path in enumerate(image_files, 1):
-            print(f"\n🖼️  Processing {i}/{len(image_files)}: {image_path.name}")
+            print(f"\n  Processing {i}/{len(image_files)}: {image_path.name}")
             
             # Detect bugs
             result, original_image = self.detect_bugs_in_image(str(image_path), conf_threshold)
@@ -354,12 +354,12 @@ class BugDetectionEvaluator:
             # Collect confidence scores
             confidence_distribution.extend(result['detections']['scores'])
             
-            print(f"   🐛 Found {num_detections} bugs (conf ≥ {conf_threshold})")
+            print(f" Found {num_detections} bugs (conf ≥ {conf_threshold})")
             
             if result['detections']['scores']:
                 max_conf = max(result['detections']['scores'])
                 avg_conf = np.mean(result['detections']['scores'])
-                print(f"   📊 Confidence - Max: {max_conf:.3f}, Avg: {avg_conf:.3f}")
+                print(f" Confidence - Max: {max_conf:.3f}, Avg: {avg_conf:.3f}")
             
             # Create visualizations
             if num_detections > 0:
@@ -379,7 +379,7 @@ class BugDetectionEvaluator:
                 vis_all_path = os.path.join(output_dir, 'all_detections', f'all_{image_path.name}')
                 vis_all.save(vis_all_path)
                 
-                print(f"   💾 Saved visualizations")
+                print(f"Saved visualizations")
             else:
                 # Save original for no detections
                 no_detect_path = os.path.join(output_dir, 'visualizations', f'no_bugs_{image_path.name}')
@@ -388,20 +388,20 @@ class BugDetectionEvaluator:
         # Generate summary report
         self.generate_evaluation_report(all_results, output_dir, conf_threshold, confidence_distribution)
         
-        print(f"\n🏆 EVALUATION SUMMARY")
-        print(f"📸 Images processed: {len(all_results)}")
-        print(f"🐛 Images with bugs detected: {images_with_bugs}")
-        print(f"📊 Detection rate: {images_with_bugs/len(all_results)*100:.1f}%")
-        print(f"🎯 Total bug detections: {total_bug_detections}")
-        print(f"📈 Average bugs per image: {total_bug_detections/len(all_results):.2f}")
+        print(f"\n EVALUATION SUMMARY")
+        print(f" Images processed: {len(all_results)}")
+        print(f" Images with bugs detected: {images_with_bugs}")
+        print(f"Detection rate: {images_with_bugs/len(all_results)*100:.1f}%")
+        print(f" Total bug detections: {total_bug_detections}")
+        print(f"Average bugs per image: {total_bug_detections/len(all_results):.2f}")
         
         if confidence_distribution:
-            print(f"🔍 Confidence stats:")
+            print(f"Confidence stats:")
             print(f"   Mean: {np.mean(confidence_distribution):.3f}")
             print(f"   Max: {np.max(confidence_distribution):.3f}")
             print(f"   Min: {np.min(confidence_distribution):.3f}")
         
-        print(f"\n📁 Results saved to: {output_dir}")
+        print(f"\n Results saved to: {output_dir}")
         
         return all_results
     
@@ -471,4 +471,4 @@ class BugDetectionEvaluator:
         with open(report_path, 'w') as f:
             f.write('\n'.join(report_lines))
         
-        print(f"📋 Detailed report saved to: {report_path}")
+        print(f" Detailed report saved to: {report_path}")
