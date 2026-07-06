@@ -74,7 +74,7 @@ class BugDetectionEvaluator:
         self.device = device
         self.model = None
         self.transform = None
-        self.class_names = {0: 'background', 1: 'bug'}  # Adjust based on your classes
+        self.class_names = {0: 'background', 1: 'bug'}  
         
         self._load_model()
         self._setup_transform()
@@ -95,7 +95,7 @@ class BugDetectionEvaluator:
                     self.model = checkpoint['model']
                     print(" Loaded complete model object")
                 else:
-                    # State dict - try to create compatible model
+                    # State dict - create compatible model
                     if 'model_state_dict' in checkpoint:
                         model_state = checkpoint['model_state_dict']
                         print(f" Epoch: {checkpoint.get('epoch', 'Unknown')}")
